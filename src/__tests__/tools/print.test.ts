@@ -46,18 +46,19 @@ describe("printTools", () => {
     expect(uploadFile).toHaveBeenCalledWith("/tmp/model.3mf", "job1.3mf");
   });
 
-  it("bambu_print_file defaults plate=1, useAms=true", async () => {
+  it("bambu_print_file defaults plate=1, useAms=true, no mapping", async () => {
     await find("bambu_print_file").handler({ remoteName: "job1.3mf" });
-    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 1, true);
+    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 1, true, undefined);
   });
 
-  it("bambu_print_file passes explicit plate + useAms", async () => {
+  it("bambu_print_file passes explicit plate, useAms + amsMapping", async () => {
     await find("bambu_print_file").handler({
       remoteName: "job1.3mf",
       plate: 3,
-      useAms: false,
+      useAms: true,
+      amsMapping: [2],
     });
-    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 3, false);
+    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 3, true, [2]);
   });
 
   it("pause/resume/stop call the matching client fn", async () => {

@@ -63,10 +63,16 @@ Or in `~/.claude.json` / Claude Desktop config:
 | `bambu_slice` | local | STL/STEP/3MF → printable .3mf (OrcaSlicer/Bambu Studio CLI) |
 | `bambu_status` | read | gcode_state, progress %, remaining min, layer, job name |
 | `bambu_temps` | read | nozzle / bed / chamber °C (current + target) |
+| `bambu_ams` | read | AMS units + per-slot filament type, color, nozzle range, active slot |
 | `bambu_list_files` | read | files on printer FTPS storage |
 | `bambu_upload` | write | push a sliced file over FTPS |
 | `bambu_print_file` | write | start printing a file on the printer |
 | `bambu_pause` / `bambu_resume` / `bambu_stop` | write | print control |
+
+`bambu_print_file` takes an optional `amsMapping` — an array mapping each
+filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
+`[0,3]` maps filament 1→slot 0 and filament 2→slot 3). Read current slots with
+`bambu_ams`.
 
 ## Typical AI flow
 

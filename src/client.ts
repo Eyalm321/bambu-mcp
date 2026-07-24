@@ -145,6 +145,48 @@ export async function temps(): Promise<{
   };
 }
 
+export interface AmsSlot {
+  slot: number;
+  type: string | null;
+  colorHex: string | null;
+  nozzleMinC: number | null;
+  nozzleMaxC: number | null;
+  active: boolean;
+}
+export interface AmsUnit {
+  id: number;
+  humidity: string | null;
+  tempC: string | null;
+  slots: AmsSlot[];
+}
+
+function hex6(c: unknown): string | null {
+  if (typeof c !== "string" || c.length < 6) return null;
+  return "#" + c.slice(0, 6).toUpperCase();
+}
+
+/** Parsed AMS state: units, per-slot filament type + color, active slot. */
+export async function amsStatus(): Promise<{ units: AmsUnit[]; activeSlot: number | null }> {
+  const r = await refreshReport();
+  const raw = (r.ams as any)?.ams ?? [];
+  const activeSlot =
+    (r.ams as any)?.tray_now != null ? Number((r.ams as any).tray_now) : null;
+  const units: AmsUnit[] = raw.map((u: any) => ({
+    id: Number(u.id),
+    humidity: u.humidity ?? null,
+    tempC: u.temp ?? null,
+    slots: (u.tray ?? []).map((t: any) => ({
+      slot: Number(t.id),
+      type: t.tray_type || null,
+      colorHex: hex6(t.tray_color),
+      nozzleMinC: t.nozzle_temp_min ? Number(t.nozzle_temp_min) : null,
+      nozzleMaxC: t.nozzle_temp_max ? Number(t.nozzle_temp_max) : null,
+      active: activeSlot != null && Number(t.id) === activeSlot,
+    })),
+  }));
+  return { units, activeSlot };
+}
+
 export async function pausePrint(): Promise<void> {
   await sendCommand({ print: { command: "pause", sequence_id: nextSeq() } });
 }
@@ -164,9 +206,13 @@ export async function stopPrint(): Promise<void> {
 export async function startPrint(
   remoteName: string,
   plate = 1,
-  useAms = true
+  useAms = true,
+  amsMapping?: number[]
 ): Promise<void> {
   const base = remoteName.replace(/\.[^.]+$/, "");
+  // ams_mapping maps each filament in the plate to an AMS slot (0-based).
+  // Default [0] = everything from slot 0. Ignored when use_ams is false.
+  const mapping = useAms ? amsMapping ?? [0] : [255];
   await sendCommand({
     print: {
       command: "project_file",
@@ -174,6 +220,7 @@ export async function startPrint(
       url: `ftp:///${remoteName}`,
       subtask_name: base,
       use_ams: useAms,
+      ams_mapping: mapping,
       timelapse: false,
       flow_cali: true,
       bed_leveling: true,

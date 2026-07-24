@@ -1,6 +1,6 @@
 {
   "name": "bambu-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP server for Bambu Lab printers (P2S/P1S/X1 family) in LAN mode: slice, upload, print, and monitor over MQTT + FTPS",
   "type": "module",
   "main": "dist/index.js",

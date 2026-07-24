@@ -45,14 +45,30 @@ export const printTools = [
         .boolean()
         .optional()
         .describe("Pull filament from the AMS if present (default true)"),
+      amsMapping: z
+        .array(z.number().int())
+        .optional()
+        .describe(
+          "Map each filament in the plate to an AMS slot (0-based), e.g. [2] prints from slot 2, [0,3] maps filament 1→slot 0, filament 2→slot 3. See bambu_ams. Default [0]."
+        ),
     }),
     handler: async (args: {
       remoteName: string;
       plate?: number;
       useAms?: boolean;
+      amsMapping?: number[];
     }) => {
-      await startPrint(args.remoteName, args.plate ?? 1, args.useAms ?? true);
-      return { printing: args.remoteName, plate: args.plate ?? 1 };
+      await startPrint(
+        args.remoteName,
+        args.plate ?? 1,
+        args.useAms ?? true,
+        args.amsMapping
+      );
+      return {
+        printing: args.remoteName,
+        plate: args.plate ?? 1,
+        amsMapping: args.amsMapping ?? [0],
+      };
     },
   },
   {

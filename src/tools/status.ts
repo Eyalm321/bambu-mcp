@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { status, temps, listFiles } from "../client.js";
+import { status, temps, listFiles, amsStatus } from "../client.js";
 
 export const statusTools = [
   {
@@ -18,6 +18,15 @@ export const statusTools = [
     inputSchema: z.object({}),
     handler: async () => {
       return temps();
+    },
+  },
+  {
+    name: "bambu_ams",
+    description:
+      "AMS state: each unit's humidity + temperature and every slot's filament type, color (hex), nozzle-temp range, and which slot is currently loaded. Slot numbers feed bambu_print_file's amsMapping.",
+    inputSchema: z.object({}),
+    handler: async () => {
+      return amsStatus();
     },
   },
   {
