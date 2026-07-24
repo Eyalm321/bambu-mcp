@@ -4,13 +4,21 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { sliceTools } from "./tools/slice.js";
 import { statusTools } from "./tools/status.js";
 import { printTools } from "./tools/print.js";
+import { controlTools } from "./tools/control.js";
+import { fileTools } from "./tools/files.js";
 
 const server = new McpServer({
   name: "bambu-mcp",
-  version: "0.1.2",
+  version: "0.2.0",
 });
 
-const allTools = [...sliceTools, ...statusTools, ...printTools];
+const allTools = [
+  ...sliceTools,
+  ...statusTools,
+  ...printTools,
+  ...controlTools,
+  ...fileTools,
+];
 
 for (const tool of allTools) {
   server.tool(

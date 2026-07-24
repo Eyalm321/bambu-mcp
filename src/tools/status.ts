@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { status, temps, listFiles, amsStatus } from "../client.js";
+import { status, temps, listFiles, amsStatus, hms } from "../client.js";
 
 export const statusTools = [
   {
@@ -27,6 +27,15 @@ export const statusTools = [
     inputSchema: z.object({}),
     handler: async () => {
       return amsStatus();
+    },
+  },
+  {
+    name: "bambu_hms",
+    description:
+      "Active HMS (Health Management System) entries, decoded to human-readable messages. Empty array means no faults/warnings.",
+    inputSchema: z.object({}),
+    handler: async () => {
+      return { hms: await hms() };
     },
   },
   {

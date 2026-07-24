@@ -5,9 +5,10 @@ vi.mock("../../client.js", () => ({
   temps: vi.fn().mockResolvedValue({ nozzleC: 25 }),
   listFiles: vi.fn().mockResolvedValue(["a.3mf", "b.3mf"]),
   amsStatus: vi.fn().mockResolvedValue({ units: [], activeSlot: null }),
+  hms: vi.fn().mockResolvedValue([]),
 }));
 
-import { status, temps, listFiles, amsStatus } from "../../client.js";
+import { status, temps, listFiles, amsStatus, hms } from "../../client.js";
 import { statusTools } from "../../tools/status.js";
 
 const find = (n: string) => statusTools.find((t: any) => t.name === n)!;
@@ -15,8 +16,8 @@ const find = (n: string) => statusTools.find((t: any) => t.name === n)!;
 describe("statusTools", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("exports 4 tools with unique names", () => {
-    expect(statusTools).toHaveLength(4);
+  it("exports 5 tools with unique names", () => {
+    expect(statusTools).toHaveLength(5);
     const names = statusTools.map((t: any) => t.name);
     expect(new Set(names).size).toBe(names.length);
   });
@@ -41,6 +42,11 @@ describe("statusTools", () => {
   it("bambu_ams calls client.amsStatus", async () => {
     await find("bambu_ams").handler({});
     expect(amsStatus).toHaveBeenCalledOnce();
+  });
+
+  it("bambu_hms calls client.hms", async () => {
+    await find("bambu_hms").handler({});
+    expect(hms).toHaveBeenCalledOnce();
   });
 
   it("bambu_list_files defaults dir to '/'", async () => {

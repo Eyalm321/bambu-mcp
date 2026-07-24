@@ -1,4 +1,10 @@
-import { PrinterController, FileController } from "bambu-js";
+import {
+  PrinterController,
+  FileController,
+  CameraController,
+  getHmsErrorMessage,
+} from "bambu-js";
+import { writeFile } from "node:fs/promises";
 
 /**
  * Stateful Bambu Lab client for LAN mode.
@@ -191,6 +197,91 @@ export async function pausePrint(): Promise<void> {
   await sendCommand({ print: { command: "pause", sequence_id: nextSeq() } });
 }
 
+// --------------------------------------------------------------------------- //
+// Direct machine control (MQTT)
+// --------------------------------------------------------------------------- //
+/** Run a raw G-code line (universal escape hatch: move, extrude, fan, temp…). */
+export async function runGcode(line: string): Promise<void> {
+  const param = line.endsWith("\n") ? line : line + "\n";
+  await sendCommand({
+    print: { command: "gcode_line", param, sequence_id: nextSeq() },
+  });
+}
+
+/** Set target temperatures (°C) via M104 (nozzle) / M140 (bed). */
+export async function setTemps(nozzleC?: number, bedC?: number): Promise<void> {
+  const lines: string[] = [];
+  if (nozzleC != null) lines.push(`M104 S${Math.round(nozzleC)}`);
+  if (bedC != null) lines.push(`M140 S${Math.round(bedC)}`);
+  if (!lines.length) throw new Error("Provide nozzleC and/or bedC");
+  await runGcode(lines.join("\n"));
+}
+
+/** Home all axes (G28). */
+export async function home(): Promise<void> {
+  await runGcode("G28");
+}
+
+/** Chamber light control. */
+export async function setLight(
+  mode: "on" | "off" | "flashing"
+): Promise<void> {
+  await sendCommand({
+    system: {
+      command: "ledctrl",
+      led_node: "chamber_light",
+      led_mode: mode,
+      led_on_time: 500,
+      led_off_time: 500,
+      loop_times: 0,
+      interval_time: 0,
+      sequence_id: nextSeq(),
+    },
+  });
+}
+
+/** Print speed profile: 1 silent, 2 standard, 3 sport, 4 ludicrous. */
+export async function setSpeed(level: 1 | 2 | 3 | 4): Promise<void> {
+  await sendCommand({
+    print: { command: "print_speed", param: String(level), sequence_id: nextSeq() },
+  });
+}
+
+// --------------------------------------------------------------------------- //
+// Health (HMS)
+// --------------------------------------------------------------------------- //
+function hmsKey(attr: number, code: number): string {
+  const w = (n: number, s: number) => ((n >> s) & 0xffff).toString(16).padStart(4, "0");
+  return `${w(attr, 16)}-${w(attr, 0)}-${w(code, 16)}-${w(code, 0)}`;
+}
+
+/** Active HMS health entries, decoded to human messages. */
+export async function hms(): Promise<
+  { code: string; message: string }[]
+> {
+  const r = await refreshReport();
+  const raw = (r.hms as any[]) ?? [];
+  return raw.map((e) => {
+    const code = hmsKey(Number(e.attr), Number(e.code));
+    return { code, message: getHmsErrorMessage(code) || "Unknown HMS code" };
+  });
+}
+
+// --------------------------------------------------------------------------- //
+// Camera
+// --------------------------------------------------------------------------- //
+/** Capture one camera frame (JPEG) and write it to `outputPath`. */
+export async function snapshot(outputPath: string): Promise<{ path: string; bytes: number }> {
+  const cam = CameraController.create({
+    model: env("BAMBU_MODEL", "P1S").toUpperCase() as any,
+    host: env("BAMBU_IP"),
+    accessCode: env("BAMBU_ACCESS_CODE"),
+  });
+  const frame = await cam.captureFrame();
+  await writeFile(outputPath, frame.imageData);
+  return { path: outputPath, bytes: frame.imageData.length };
+}
+
 export async function resumePrint(): Promise<void> {
   await sendCommand({ print: { command: "resume", sequence_id: nextSeq() } });
 }
@@ -261,6 +352,16 @@ export async function listFiles(dir = "/"): Promise<string[]> {
 
 export async function uploadFile(localPath: string, remoteName: string): Promise<void> {
   await withFtp((f) => f.uploadFile(localPath, `/${remoteName}`));
+}
+
+export async function downloadFile(remoteName: string, localPath: string): Promise<void> {
+  const remote = remoteName.startsWith("/") ? remoteName : `/${remoteName}`;
+  await withFtp((f) => f.downloadFile(remote, localPath));
+}
+
+export async function deleteFile(remoteName: string): Promise<void> {
+  const remote = remoteName.startsWith("/") ? remoteName : `/${remoteName}`;
+  await withFtp((f) => f.deleteFile(remote));
 }
 
 /** Test seam: reset the cached controller (used by unit tests). */
