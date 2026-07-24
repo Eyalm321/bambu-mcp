@@ -1,8 +1,6 @@
-.venv/
-__pycache__/
-*.pyc
-*.egg-info/
+node_modules/
 dist/
-build/
+.env
+*.js.map
 *.3mf
 *.gcode

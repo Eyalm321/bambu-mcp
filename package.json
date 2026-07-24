@@ -1,0 +1,54 @@
+{
+  "name": "bambu-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Bambu Lab printers (P2S/P1S/X1 family) in LAN mode: slice, upload, print, and monitor over MQTT + FTPS",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "bambu-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "node --import ts-node/esm src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "bambu",
+    "bambu-lab",
+    "3d-printing",
+    "p2s",
+    "p1s",
+    "x1",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "Eyalm321",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eyalm321/bambu-mcp.git"
+  },
+  "homepage": "https://github.com/Eyalm321/bambu-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Eyalm321/bambu-mcp/issues"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "bambu-js": "^3.0.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}
