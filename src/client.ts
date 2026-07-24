@@ -58,7 +58,9 @@ async function getController(): Promise<PrinterController<any>> {
   if (controller && controller.isConnected) return controller;
 
   const c = PrinterController.create({
-    model: env("BAMBU_MODEL", "p1s") as any,
+    // bambu-js model strings are case-sensitive (P1S / H2D). Normalize so
+    // BAMBU_MODEL=p1s and P1S both work. P2S uses the P1S dialect.
+    model: env("BAMBU_MODEL", "P1S").toUpperCase() as any,
     host: env("BAMBU_IP"),
     accessCode: env("BAMBU_ACCESS_CODE"),
     serial: env("BAMBU_SERIAL"),

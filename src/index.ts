@@ -7,7 +7,7 @@ import { printTools } from "./tools/print.js";
 
 const server = new McpServer({
   name: "bambu-mcp",
-  version: "0.1.0",
+  version: "0.1.1",
 });
 
 const allTools = [...sliceTools, ...statusTools, ...printTools];

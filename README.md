@@ -25,7 +25,7 @@ On the printer screen: **Settings → LAN Mode → Enable**. Note the **IP**,
 export BAMBU_IP=192.168.1.42
 export BAMBU_ACCESS_CODE=xxxxxxxx
 export BAMBU_SERIAL=01P00A1234567890
-export BAMBU_MODEL=p1s          # p1s | h2d — P2S uses the p1s dialect
+export BAMBU_MODEL=P1S          # P1S | H2D (case-insensitive) — P2S uses the P1S dialect
 ```
 
 ## Register with Claude Code
@@ -49,7 +49,7 @@ Or in `~/.claude.json` / Claude Desktop config:
         "BAMBU_IP": "192.168.1.42",
         "BAMBU_ACCESS_CODE": "xxxxxxxx",
         "BAMBU_SERIAL": "01P00A1234567890",
-        "BAMBU_MODEL": "p1s"
+        "BAMBU_MODEL": "P1S"
       }
     }
   }
@@ -91,11 +91,12 @@ omitted.
 
 ## Caveats
 
-- **P2S schema**: `bambu-js` ships typed schemas for `p1s` / `h2d` only. P2S
-  speaks the X1/P1-family MQTT dialect, so `BAMBU_MODEL=p1s` is the default and
-  print commands are sent as raw payloads. The `project_file` start-print
-  payload is the community LAN form — **verify against your actual P2S** before
-  relying on unattended prints.
+- **P2S schema**: `bambu-js` ships typed schemas for `P1S` / `H2D` only. The
+  P2S speaks the P1S-family MQTT dialect — **verified live**: `bambu_status` /
+  `bambu_temps` / `bambu_list_files` work against a real P2S with
+  `BAMBU_MODEL=P1S`. Print commands are sent as raw payloads; the `project_file`
+  start-print payload is the community LAN form and has **not** yet been
+  confirmed on a P2S — verify before relying on unattended prints.
 - LAN mode only. No cloud account path (keeps it local + credential-light).
 - `bambu_status` / `bambu_temps` force a full MQTT `pushall`, then read the
   freshest cached report (≤3 s wait).
