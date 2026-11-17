@@ -9,7 +9,7 @@ import { fileTools } from "./tools/files.js";
 
 const server = new McpServer({
   name: "bambu-mcp",
-  version: "0.3.0",
+  version: "0.3.1",
 });
 
 const allTools = [
