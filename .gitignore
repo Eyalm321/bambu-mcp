@@ -4,3 +4,5 @@ dist/
 *.js.map
 *.3mf
 *.gcode
+# The slicer CLI writes logs (00000.log) into the working dir.
+*.log
