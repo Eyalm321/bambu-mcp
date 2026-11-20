@@ -6,19 +6,22 @@ import { statusTools } from "./tools/status.js";
 import { printTools } from "./tools/print.js";
 import { controlTools } from "./tools/control.js";
 import { fileTools } from "./tools/files.js";
+import { enabledTools } from "./limits.js";
 
 const server = new McpServer({
   name: "bambu-mcp",
   version: "0.3.1",
 });
 
-const allTools = [
+const everyTool = [
   ...sliceTools,
   ...statusTools,
   ...printTools,
   ...controlTools,
   ...fileTools,
 ];
+
+const allTools = enabledTools(everyTool);
 
 for (const tool of allTools) {
   server.tool(

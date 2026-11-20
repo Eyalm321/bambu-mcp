@@ -8,6 +8,7 @@ import {
   resumePrint,
   stopPrint,
 } from "../client.js";
+import { checkPath } from "../limits.js";
 
 export const printTools = [
   {
@@ -25,8 +26,9 @@ export const printTools = [
       if (!existsSync(args.localPath)) {
         throw new Error(`No such file: ${args.localPath}`);
       }
+      const local = checkPath(args.localPath, "read");
       const remote = args.remoteName ?? basename(args.localPath);
-      await uploadFile(args.localPath, remote);
+      await uploadFile(local, remote);
       return { uploaded: remote };
     },
   },

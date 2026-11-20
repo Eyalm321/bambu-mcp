@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Optional deployment limits, all env vars (#17): `BAMBU_PATH_ROOT` confines every local path (upload, download, snapshot, slice input/output/presets; symlinks followed), `BAMBU_DISABLED_TOOLS` leaves the named tools unregistered, `BAMBU_MAX_NOZZLE_C` / `BAMBU_MAX_BED_C` cap `bambu_set_temps` and the temperature commands in `bambu_gcode`. Unset, nothing changes.
+
 ## 0.3.1 (2026-11-16)
 
 ### Security

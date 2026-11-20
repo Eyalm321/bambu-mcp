@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { downloadFile, deleteFile } from "../client.js";
+import { checkPath } from "../limits.js";
 
 export const fileTools = [
   {
@@ -11,8 +12,9 @@ export const fileTools = [
       localPath: z.string().describe("Destination path on this machine"),
     }),
     handler: async (args: { remoteName: string; localPath: string }) => {
-      await downloadFile(args.remoteName, args.localPath);
-      return { downloaded: args.remoteName, to: args.localPath };
+      const to = checkPath(args.localPath, "write");
+      await downloadFile(args.remoteName, to);
+      return { downloaded: args.remoteName, to };
     },
   },
   {

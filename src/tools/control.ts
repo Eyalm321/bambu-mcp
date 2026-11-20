@@ -8,6 +8,7 @@ import {
   setSpeed,
   snapshot,
 } from "../client.js";
+import { checkGcodeTemps, checkPath, checkTemps, defaultDir } from "../limits.js";
 
 export const controlTools = [
   {
@@ -18,6 +19,7 @@ export const controlTools = [
       line: z.string().describe("G-code, e.g. 'G28' or 'M106 S255'"),
     }),
     handler: async (args: { line: string }) => {
+      checkGcodeTemps(args.line);
       await runGcode(args.line);
       return { sent: args.line };
     },
@@ -31,6 +33,7 @@ export const controlTools = [
       bedC: z.number().optional().describe("Bed target °C"),
     }),
     handler: async (args: { nozzleC?: number; bedC?: number }) => {
+      checkTemps(args.nozzleC, args.bedC);
       await setTemps(args.nozzleC, args.bedC);
       return { nozzleC: args.nozzleC ?? null, bedC: args.bedC ?? null };
     },
@@ -80,11 +83,13 @@ export const controlTools = [
       outputPath: z
         .string()
         .optional()
-        .describe("Where to save the JPEG (default: ./bambu-snapshot-<ts>.jpg)"),
+        .describe("Where to save the JPEG (default: bambu-snapshot-<ts>.jpg in BAMBU_PATH_ROOT, else the working dir)"),
     }),
     handler: async (args: { outputPath?: string }) => {
-      const out =
-        args.outputPath ?? join(process.cwd(), `bambu-snapshot-${Date.now()}.jpg`);
+      const out = checkPath(
+        args.outputPath ?? join(defaultDir(), `bambu-snapshot-${Date.now()}.jpg`),
+        "write"
+      );
       return snapshot(out);
     },
   },

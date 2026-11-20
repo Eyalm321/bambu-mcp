@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
+import { checkPath } from "../limits.js";
 
 /** True if a bare command name is found on $PATH. */
 function isOnPath(cmd: string): boolean {
@@ -102,15 +103,21 @@ export const sliceTools = [
       if (!existsSync(args.inputPath)) {
         throw new Error(`No such file: ${args.inputPath}`);
       }
-      const out =
-        args.outputPath ?? args.inputPath.replace(/\.[^.]+$/, "") + ".sliced.3mf";
+      const input = checkPath(args.inputPath, "read");
+      const out = checkPath(
+        args.outputPath ?? args.inputPath.replace(/\.[^.]+$/, "") + ".sliced.3mf",
+        "write"
+      );
+      // Preset lists are semicolon-joined local paths: each one is checked.
+      const presets = (list: string) =>
+        list.split(";").map((p) => checkPath(p, "read")).join(";");
       const bin = resolveSlicerBin();
       const cliArgs = ["--slice", String(args.plate ?? 0)];
-      if (args.settings) cliArgs.push("--load-settings", args.settings);
-      if (args.filaments) cliArgs.push("--load-filaments", args.filaments);
+      if (args.settings) cliArgs.push("--load-settings", presets(args.settings));
+      if (args.filaments) cliArgs.push("--load-filaments", presets(args.filaments));
       cliArgs.push("--arrange", args.arrange === false ? "0" : "1");
       cliArgs.push("--orient", args.orient === false ? "0" : "1");
-      cliArgs.push("--export-3mf", out, args.inputPath);
+      cliArgs.push("--export-3mf", out, input);
 
       await run(bin, cliArgs, 1_800_000); // 30 min hard cap
       if (!existsSync(out)) {
