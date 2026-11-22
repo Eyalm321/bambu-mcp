@@ -115,6 +115,69 @@ export async function refreshReport(timeoutMs = 3000): Promise<PrintReport> {
 // --------------------------------------------------------------------------- //
 // High-level operations used by the tools
 // --------------------------------------------------------------------------- //
+export type SdcardState = "absent" | "present" | "abnormal" | "readonly" | "unknown";
+
+export interface SdcardStatus {
+  state: SdcardState;
+  raw: { sdcard: unknown; homeFlag: unknown };
+}
+
+// Bits 8-9 of home_flag, same order as BambuStudio's SdcardState enum
+// (NO_SDCARD, HAS_SDCARD_NORMAL, HAS_SDCARD_ABNORMAL, HAS_SDCARD_READONLY).
+const SD_FROM_HOME_FLAG: SdcardState[] = ["absent", "present", "abnormal", "readonly"];
+
+/**
+ * Decode the SD card state from a report. home_flag carries all four states;
+ * older firmware sends only the `sdcard` boolean, which tells present/absent.
+ */
+export function decodeSdcard(r: PrintReport): SdcardStatus {
+  const raw = { sdcard: r.sdcard ?? null, homeFlag: r.home_flag ?? null };
+  if (typeof r.home_flag === "number" && Number.isInteger(r.home_flag)) {
+    return { state: SD_FROM_HOME_FLAG[(r.home_flag >> 8) & 0x3], raw };
+  }
+  if (typeof r.sdcard === "boolean") {
+    return { state: r.sdcard ? "present" : "absent", raw };
+  }
+  return { state: "unknown", raw };
+}
+
+export interface StorageSpace {
+  freeKb: number;
+  totalKb: number;
+}
+
+export interface StorageStatus {
+  /** SD card (BambuStudio's "external" timelapse storage). */
+  sdcard: StorageSpace | null;
+  internal: StorageSpace | null;
+}
+
+function kb(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+}
+
+function space(cam: Record<string, unknown>, prefix: string): StorageSpace | null {
+  const freeKb = kb(cam[`${prefix}_free_kb`]);
+  const totalKb = kb(cam[`${prefix}_total_kb`]);
+  return freeKb === null || totalKb === null ? null : { freeKb, totalKb };
+}
+
+/**
+ * Free and total storage in KB from `device.cam.tl_{external,internal}_*_kb`,
+ * the fields BambuStudio's DevStorage::ParseV1_0 reads. Null when the
+ * firmware sends neither pair.
+ */
+export function decodeStorage(r: PrintReport): StorageStatus | null {
+  const device = r.device;
+  if (!device || typeof device !== "object") return null;
+  const cam = (device as Record<string, unknown>).cam;
+  if (!cam || typeof cam !== "object") return null;
+  const c = cam as Record<string, unknown>;
+  const sdcard = space(c, "tl_external");
+  const internal = space(c, "tl_internal");
+  return sdcard || internal ? { sdcard, internal } : null;
+}
+
 export async function status(): Promise<{
   state: string;
   percent: number | null;
@@ -122,6 +185,8 @@ export async function status(): Promise<{
   layer: number | null;
   totalLayers: number | null;
   subtask: string | null;
+  sdcard: SdcardStatus;
+  storage: StorageStatus | null;
 }> {
   const r = await refreshReport();
   return {
@@ -131,6 +196,8 @@ export async function status(): Promise<{
     layer: r.layer_num ?? null,
     totalLayers: r.total_layer_num ?? null,
     subtask: r.subtask_name ?? null,
+    sdcard: decodeSdcard(r),
+    storage: decodeStorage(r),
   };
 }
 
@@ -343,10 +410,35 @@ async function withFtp<T>(fn: (f: FileController) => Promise<T>): Promise<T> {
   }
 }
 
-export async function listFiles(dir = "/"): Promise<string[]> {
+export interface FileEntry {
+  name: string;
+  bytes: number;
+  /** ISO time when the server lists it parsed (MLSD), else the raw LIST date text. */
+  modified: string | null;
+  dir: boolean;
+}
+
+/** Shape a raw FTPS listing; totalBytes sums files only (directory sizes mean nothing). */
+export function toEntries(
+  infos: { name: string; size: number; isDirectory: boolean; modifiedAt?: Date; rawModifiedAt?: string }[],
+): { entries: FileEntry[]; totalBytes: number } {
+  const entries = infos.map((e) => ({
+    name: e.name,
+    bytes: e.size,
+    modified: e.modifiedAt ? e.modifiedAt.toISOString() : e.rawModifiedAt || null,
+    dir: e.isDirectory,
+  }));
+  const totalBytes = entries.reduce((sum, e) => (e.dir ? sum : sum + e.bytes), 0);
+  return { entries, totalBytes };
+}
+
+export async function listFiles(
+  dir = "/",
+): Promise<{ files: string[]; entries: FileEntry[]; totalBytes: number }> {
   return withFtp(async (f) => {
-    const entries = await f.listDir(dir);
-    return entries.map((e) => e.name);
+    const { entries, totalBytes } = toEntries(await f.listDir(dir));
+    // `files` stays a name list so existing callers keep working.
+    return { files: entries.map((e) => e.name), entries, totalBytes };
   });
 }
 
