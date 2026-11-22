@@ -28,6 +28,16 @@ export BAMBU_SERIAL=01P00A1234567890
 export BAMBU_MODEL=P1S          # P1S | H2D (case-insensitive) — P2S uses the P1S dialect
 ```
 
+## Deployment limits (optional)
+
+Server-side limits that hold whatever the client's own permission rules allow. All are env vars, unset = no limit.
+
+| Variable | Effect |
+|---|---|
+| `BAMBU_PATH_ROOT` | Local paths for `bambu_upload`, `bambu_download_file`, `bambu_snapshot` and `bambu_slice` (input, output and preset files) must resolve, symlinks followed, inside this directory; others are refused. Snapshots default into it. |
+| `BAMBU_DISABLED_TOOLS` | Comma list of tool names that are not registered at all, e.g. `bambu_gcode,bambu_delete_file`. |
+| `BAMBU_MAX_NOZZLE_C`, `BAMBU_MAX_BED_C` | `bambu_set_temps` refuses targets above the cap. `bambu_gcode` applies the same caps to `M104`/`M109` (nozzle) and `M140`/`M190` (bed), to every `S`, `R` and `B` target, and refuses a preheat preset pick (`I`). A cap that is not a number refuses every temperature command; while a cap is set, a temperature command whose value is not a plain number is refused. The caps cover these direct-command tools only, not the G-code inside a print file (`bambu_upload` + `bambu_print_file`). |
+
 ## Register with Claude Code
 
 ```bash
@@ -116,8 +126,9 @@ omitted.
   P1S/H2D but returns "invalid JPEG data" on a P2S (different camera protocol) —
   treat P2S camera capture as unsupported for now.
 - **`bambu_gcode` / `bambu_home` / `bambu_set_temps`** send commands directly;
-  don't run motion or homing mid-print. `bambu_gcode` is an unguarded escape
-  hatch — it will run whatever G-code you give it.
+  don't run motion or homing mid-print. `bambu_gcode` is an escape hatch: apart
+  from the temperature caps above it runs whatever G-code you give it, so
+  disable it with `BAMBU_DISABLED_TOOLS` where that matters.
 - LAN mode only. No cloud account path (keeps it local + credential-light).
 - `bambu_status` / `bambu_temps` force a full MQTT `pushall`, then read the
   freshest cached report (≤3 s wait).

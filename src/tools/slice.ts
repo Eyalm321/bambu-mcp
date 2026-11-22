@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { delimiter, join } from "node:path";
+import { checkPath } from "../limits.js";
 
 /** True if a bare command name is found on $PATH. */
 function isOnPath(cmd: string): boolean {
@@ -99,18 +100,28 @@ export const sliceTools = [
       arrange?: boolean;
       orient?: boolean;
     }) => {
-      if (!existsSync(args.inputPath)) {
+      // Every path is checked before anything else, so a refusal never
+      // depends on what exists or is installed on the host.
+      const input = checkPath(args.inputPath, "read");
+      if (!existsSync(input)) {
         throw new Error(`No such file: ${args.inputPath}`);
       }
-      const out =
-        args.outputPath ?? args.inputPath.replace(/\.[^.]+$/, "") + ".sliced.3mf";
+      const out = checkPath(
+        args.outputPath ?? args.inputPath.replace(/\.[^.]+$/, "") + ".sliced.3mf",
+        "write"
+      );
+      // Preset lists are semicolon-joined local paths: each one is checked.
+      const presets = (list: string) =>
+        list.split(";").map((p) => checkPath(p, "read")).join(";");
+      const settings = args.settings ? presets(args.settings) : undefined;
+      const filaments = args.filaments ? presets(args.filaments) : undefined;
       const bin = resolveSlicerBin();
       const cliArgs = ["--slice", String(args.plate ?? 0)];
-      if (args.settings) cliArgs.push("--load-settings", args.settings);
-      if (args.filaments) cliArgs.push("--load-filaments", args.filaments);
+      if (settings) cliArgs.push("--load-settings", settings);
+      if (filaments) cliArgs.push("--load-filaments", filaments);
       cliArgs.push("--arrange", args.arrange === false ? "0" : "1");
       cliArgs.push("--orient", args.orient === false ? "0" : "1");
-      cliArgs.push("--export-3mf", out, args.inputPath);
+      cliArgs.push("--export-3mf", out, input);
 
       await run(bin, cliArgs, 1_800_000); // 30 min hard cap
       if (!existsSync(out)) {
