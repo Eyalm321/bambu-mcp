@@ -118,6 +118,19 @@ describe("temperature caps", () => {
     expect(runGcode).toHaveBeenCalledTimes(5);
   });
 
+  it("gcode temperature commands in any spelling are checked, odd values refused", () => {
+    for (const g of [
+      "M104 S+300", "M140 S+150", "M0104 S300", "m00140 s120", "M104 S3e2",
+      "G28\rM104 S300", "G90\rM190 S150", "G28 M104 S300", "M104 S200 M140 S120",
+      "M104 S-5", "M104 S", "M104 S(300)", "M104 S300*45",
+    ]) {
+      expect(() => checkGcodeTemps(g), g).toThrow(/Refused/);
+    }
+    for (const g of ["M104 S250", "M0104 S250", "G28 M140 S90", "M104 S200.5 T0", "N3 M109 R250*12", "M1040 S999"]) {
+      expect(() => checkGcodeTemps(g), g).not.toThrow();
+    }
+  });
+
   it("a cap that is not a number fails closed", () => {
     process.env.BAMBU_MAX_NOZZLE_C = "28O";
     expect(() => checkTemps(100)).toThrow(/not a number/);
