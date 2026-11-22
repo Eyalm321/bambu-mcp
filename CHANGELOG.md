@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (2026-11-22)
 
 ### Added
 - `bambu_list_files` returns `entries` (name, size in bytes, modified time, dir flag) and `totalBytes` for the listed directory beside `files`, which stays a list of names so existing callers keep working (#20).
