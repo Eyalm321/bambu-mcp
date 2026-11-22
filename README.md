@@ -61,11 +61,11 @@ Or in `~/.claude.json` / Claude Desktop config:
 | tool | kind | does |
 |------|------|------|
 | `bambu_slice` | local | STL/STEP/3MF → printable .3mf (OrcaSlicer/Bambu Studio CLI) |
-| `bambu_status` | read | gcode_state, progress %, remaining min, layer, job name |
+| `bambu_status` | read | gcode_state, progress %, remaining min, layer, job name, SD card state, free/total storage (when reported) |
 | `bambu_temps` | read | nozzle / bed / chamber °C (current + target) |
 | `bambu_ams` | read | AMS units + per-slot filament type, color, nozzle range, active slot |
 | `bambu_hms` | read | active Health Management System faults, decoded to messages |
-| `bambu_list_files` | read | files on printer FTPS storage |
+| `bambu_list_files` | read | files on printer FTPS storage: names, plus size in bytes and modified time per entry and the directory's total bytes |
 | `bambu_upload` | write | push a sliced file over FTPS |
 | `bambu_print_file` | write | start printing a file on the printer |
 | `bambu_pause` / `bambu_resume` / `bambu_stop` | write | print control |

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../client.js", () => ({
   status: vi.fn().mockResolvedValue({ state: "IDLE" }),
   temps: vi.fn().mockResolvedValue({ nozzleC: 25 }),
-  listFiles: vi.fn().mockResolvedValue(["a.3mf", "b.3mf"]),
+  listFiles: vi.fn().mockResolvedValue({ files: ["a.3mf"], entries: [], totalBytes: 0 }),
   amsStatus: vi.fn().mockResolvedValue({ units: [], activeSlot: null }),
   hms: vi.fn().mockResolvedValue([]),
 }));
@@ -52,6 +52,11 @@ describe("statusTools", () => {
   it("bambu_list_files defaults dir to '/'", async () => {
     await find("bambu_list_files").handler({});
     expect(listFiles).toHaveBeenCalledWith("/");
+  });
+
+  it("bambu_list_files returns the client listing unchanged", async () => {
+    const out = await find("bambu_list_files").handler({});
+    expect(out).toEqual({ files: ["a.3mf"], entries: [], totalBytes: 0 });
   });
 
   it("bambu_list_files passes a custom dir", async () => {
