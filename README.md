@@ -36,7 +36,7 @@ Server-side limits that hold whatever the client's own permission rules allow. A
 |---|---|
 | `BAMBU_PATH_ROOT` | Local paths for `bambu_upload`, `bambu_download_file`, `bambu_snapshot` and `bambu_slice` (input, output and preset files) must resolve, symlinks followed, inside this directory; others are refused. Snapshots default into it. |
 | `BAMBU_DISABLED_TOOLS` | Comma list of tool names that are not registered at all, e.g. `bambu_gcode,bambu_delete_file`. |
-| `BAMBU_MAX_NOZZLE_C`, `BAMBU_MAX_BED_C` | `bambu_set_temps` refuses targets above the cap. `bambu_gcode` applies the same caps to `M104`/`M109` (nozzle) and `M140`/`M190` (bed). A cap that is not a number refuses every temperature command; while a cap is set, a temperature command whose value is not a plain number is refused. The caps cover these direct-command tools only, not the G-code inside a print file (`bambu_upload` + `bambu_print_file`). |
+| `BAMBU_MAX_NOZZLE_C`, `BAMBU_MAX_BED_C` | `bambu_set_temps` refuses targets above the cap. `bambu_gcode` applies the same caps to `M104`/`M109` (nozzle) and `M140`/`M190` (bed), to every `S`, `R` and `B` target, and refuses a preheat preset pick (`I`). A cap that is not a number refuses every temperature command; while a cap is set, a temperature command whose value is not a plain number is refused. The caps cover these direct-command tools only, not the G-code inside a print file (`bambu_upload` + `bambu_print_file`). |
 
 ## Register with Claude Code
 

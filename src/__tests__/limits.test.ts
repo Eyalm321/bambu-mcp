@@ -123,10 +123,11 @@ describe("temperature caps", () => {
       "M104 S+300", "M140 S+150", "M0104 S300", "m00140 s120", "M104 S3e2",
       "G28\rM104 S300", "G90\rM190 S150", "G28 M104 S300", "M104 S200 M140 S120",
       "M104 S-5", "M104 S", "M104 S(300)", "M104 S300*45", "M 104 S300", "m  0140 s120",
+      "M104 S200 B300", "M109 B300", "M104 B+300", "M104 I1", "M140 I0", "m190 i2", "M109 S200 I1",
     ]) {
       expect(() => checkGcodeTemps(g), g).toThrow(/Refused/);
     }
-    for (const g of ["M104 S250", "M0104 S250", "G28 M140 S90", "M104 S200.5 T0", "N3 M109 R250*12", "M1040 S999", "M 104 S250", "M 1040 S999"]) {
+    for (const g of ["M104 S250", "M0104 S250", "G28 M140 S90", "M104 S200.5 T0", "N3 M109 R250*12", "M1040 S999", "M 104 S250", "M 1040 S999", "M104 S200 B250", "G2 X10 I5"]) {
       expect(() => checkGcodeTemps(g), g).not.toThrow();
     }
   });

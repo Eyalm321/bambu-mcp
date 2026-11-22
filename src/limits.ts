@@ -84,9 +84,12 @@ export function checkTemps(nozzleC?: number, bedC?: number): void {
 /**
  * Apply the same caps to temperature commands inside raw G-code, so the
  * bambu_gcode escape hatch cannot step around bambu_set_temps' limit.
- * M104/M109 set the nozzle, M140/M190 the bed; S and R both set a target.
+ * M104/M109 set the nozzle, M140/M190 the bed; S and R both set a target, and
+ * B is a second (auto-temperature maximum) target, so all three are capped.
+ * I picks a stored preheat preset whose temperature is not in the line, so it
+ * is refused while a cap is set.
  * Fails closed while a cap is set: any CR or LF ends a line, the command is
- * found anywhere in the line, with spaces after M or leading zeros, every S/R after it (up
+ * found anywhere in the line, with spaces after M or leading zeros, every S/R/B after it (up
  * to the next temperature command) is checked, and a value that is not a
  * plain unsigned decimal is refused rather than guessed at.
  */
@@ -101,7 +104,9 @@ export function checkGcodeTemps(gcode: string): void {
       const nozzle = m[1] === "104" || m[1] === "109";
       const end = k + 1 < cmds.length ? cmds[k + 1].index : line.length;
       const params = line.slice(m.index + m[0].length, end);
-      for (const p of params.matchAll(/[SR]\s*([0-9A-Z+\-.]*)/g)) {
+      if (params.includes("I"))
+        throw new Error(`Refused: "${raw.trim()}" picks a preheat preset (I), whose temperature cannot be checked against the cap`);
+      for (const p of params.matchAll(/[SRB]\s*([0-9A-Z+\-.]*)/g)) {
         if (!/^\d+(\.\d+)?$/.test(p[1]))
           throw new Error(`Refused: temperature value "${p[1]}" in "${raw.trim()}" is not a plain number`);
         const t = Number(p[1]);
