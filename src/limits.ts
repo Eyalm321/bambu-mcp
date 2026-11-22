@@ -86,7 +86,7 @@ export function checkTemps(nozzleC?: number, bedC?: number): void {
  * bambu_gcode escape hatch cannot step around bambu_set_temps' limit.
  * M104/M109 set the nozzle, M140/M190 the bed; S and R both set a target.
  * Fails closed while a cap is set: any CR or LF ends a line, the command is
- * found anywhere in the line and with leading zeros, every S/R after it (up
+ * found anywhere in the line, with spaces after M or leading zeros, every S/R after it (up
  * to the next temperature command) is checked, and a value that is not a
  * plain unsigned decimal is refused rather than guessed at.
  */
@@ -96,7 +96,7 @@ export function checkGcodeTemps(gcode: string): void {
   if (maxN === undefined && maxB === undefined) return;
   for (const raw of gcode.split(/[\r\n]/)) {
     const line = raw.replace(/;.*$/, "").toUpperCase();
-    const cmds = [...line.matchAll(/M0*(104|109|140|190)(?!\d)/g)];
+    const cmds = [...line.matchAll(/M\s*0*(104|109|140|190)(?!\d)/g)];
     cmds.forEach((m, k) => {
       const nozzle = m[1] === "104" || m[1] === "109";
       const end = k + 1 < cmds.length ? cmds[k + 1].index : line.length;
