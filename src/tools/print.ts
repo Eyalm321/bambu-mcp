@@ -23,10 +23,12 @@ export const printTools = [
         .describe("Name on the printer (default: the local basename)"),
     }),
     handler: async (args: { localPath: string; remoteName?: string }) => {
-      if (!existsSync(args.localPath)) {
+      // Checked first: with a root set, a path outside it is refused before
+      // the reply could say whether it exists.
+      const local = checkPath(args.localPath, "read");
+      if (!existsSync(local)) {
         throw new Error(`No such file: ${args.localPath}`);
       }
-      const local = checkPath(args.localPath, "read");
       const remote = args.remoteName ?? basename(args.localPath);
       await uploadFile(local, remote);
       return { uploaded: remote };
