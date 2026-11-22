@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { decodeSdcard, toEntries } from "../client.js";
+import { decodeSdcard, decodeStorage, toEntries } from "../client.js";
 
 describe("toEntries", () => {
   // Shape of a basic-ftp LIST parse from a P2S cache root: no MLSD, so no modifiedAt.
@@ -65,5 +65,34 @@ describe("decodeSdcard", () => {
 
   it("ignores a non-integer home_flag", () => {
     expect(decodeSdcard({ home_flag: "256", sdcard: false }).state).toBe("absent");
+  });
+});
+
+describe("decodeStorage", () => {
+  const cam = { tl_external_free_kb: 20_000, tl_external_total_kb: 31_000_000, tl_internal_free_kb: 512, tl_internal_total_kb: 4096 };
+
+  it("reads SD card and internal free/total KB from device.cam", () => {
+    expect(decodeStorage({ device: { cam } })).toEqual({
+      sdcard: { freeKb: 20_000, totalKb: 31_000_000 },
+      internal: { freeKb: 512, totalKb: 4096 },
+    });
+  });
+
+  it("keeps the pair that is present and nulls the other", () => {
+    const s = decodeStorage({ device: { cam: { tl_external_free_kb: 0, tl_external_total_kb: 100 } } });
+    expect(s).toEqual({ sdcard: { freeKb: 0, totalKb: 100 }, internal: null });
+  });
+
+  it("is null without device.cam or without any full pair", () => {
+    expect(decodeStorage({})).toBeNull();
+    expect(decodeStorage({ device: {} })).toBeNull();
+    expect(decodeStorage({ device: { cam: "x" } })).toBeNull();
+    expect(decodeStorage({ device: { cam: { tl_external_free_kb: 5 } } })).toBeNull();
+  });
+
+  it("ignores non-numeric, negative and non-finite values", () => {
+    for (const bad of ["5", -1, NaN, Infinity, null, true]) {
+      expect(decodeStorage({ device: { cam: { tl_external_free_kb: bad, tl_external_total_kb: 10 } } })).toBeNull();
+    }
   });
 });

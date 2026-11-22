@@ -141,6 +141,43 @@ export function decodeSdcard(r: PrintReport): SdcardStatus {
   return { state: "unknown", raw };
 }
 
+export interface StorageSpace {
+  freeKb: number;
+  totalKb: number;
+}
+
+export interface StorageStatus {
+  /** SD card (BambuStudio's "external" timelapse storage). */
+  sdcard: StorageSpace | null;
+  internal: StorageSpace | null;
+}
+
+function kb(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+}
+
+function space(cam: Record<string, unknown>, prefix: string): StorageSpace | null {
+  const freeKb = kb(cam[`${prefix}_free_kb`]);
+  const totalKb = kb(cam[`${prefix}_total_kb`]);
+  return freeKb === null || totalKb === null ? null : { freeKb, totalKb };
+}
+
+/**
+ * Free and total storage in KB from `device.cam.tl_{external,internal}_*_kb`,
+ * the fields BambuStudio's DevStorage::ParseV1_0 reads. Null when the
+ * firmware sends neither pair.
+ */
+export function decodeStorage(r: PrintReport): StorageStatus | null {
+  const device = r.device;
+  if (!device || typeof device !== "object") return null;
+  const cam = (device as Record<string, unknown>).cam;
+  if (!cam || typeof cam !== "object") return null;
+  const c = cam as Record<string, unknown>;
+  const sdcard = space(c, "tl_external");
+  const internal = space(c, "tl_internal");
+  return sdcard || internal ? { sdcard, internal } : null;
+}
+
 export async function status(): Promise<{
   state: string;
   percent: number | null;
@@ -149,6 +186,7 @@ export async function status(): Promise<{
   totalLayers: number | null;
   subtask: string | null;
   sdcard: SdcardStatus;
+  storage: StorageStatus | null;
 }> {
   const r = await refreshReport();
   return {
@@ -159,6 +197,7 @@ export async function status(): Promise<{
     totalLayers: r.total_layer_num ?? null,
     subtask: r.subtask_name ?? null,
     sdcard: decodeSdcard(r),
+    storage: decodeStorage(r),
   };
 }
 
