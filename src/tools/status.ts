@@ -5,7 +5,7 @@ export const statusTools = [
   {
     name: "bambu_status",
     description:
-      "Current printer state: gcode_state (IDLE/RUNNING/PAUSE/FINISH/FAILED), print progress percent, remaining minutes, current/total layers, and the running job name. Forces a fresh MQTT pushall.",
+      "Current printer state: gcode_state (IDLE/RUNNING/PAUSE/FINISH/FAILED), print progress percent, remaining minutes, current/total layers, the running job name, and sdcard.state (present/absent/abnormal/readonly/unknown, raw values beside it). Forces a fresh MQTT pushall.",
     inputSchema: z.object({}),
     handler: async () => {
       return status();
@@ -41,7 +41,7 @@ export const statusTools = [
   {
     name: "bambu_list_files",
     description:
-      "List printable files on the printer's FTPS storage. Defaults to the cache root where uploads land.",
+      "List files on the printer's FTPS storage. Defaults to the cache root where uploads land. Returns files (names), entries (name, bytes, modified, dir) and totalBytes (sum of file sizes in that directory). Free space is not reported by the printer.",
     inputSchema: z.object({
       dir: z
         .string()
@@ -49,7 +49,7 @@ export const statusTools = [
         .describe("Absolute directory on the printer (default '/')"),
     }),
     handler: async (args: { dir?: string }) => {
-      return { files: await listFiles(args.dir ?? "/") };
+      return listFiles(args.dir ?? "/");
     },
   },
 ];
