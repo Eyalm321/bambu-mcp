@@ -132,6 +132,22 @@ describe("temperature caps", () => {
     }
   });
 
+  it("other heater-target commands obey the caps too", () => {
+    for (const g of [
+      "M303 S300", "M303 E0 S300 C8", "m303 e1 s290", "M303 E-1 S120", "M 0303 E-1 S101", "M303 E-2 S50", "M303 EX S200",
+      "M303 E S200", "M303 E0 E-1 S200", "M303 E0 S+300", "G10 P0 S300", "G10 P0 S200 R290", "g 010 p1 r300", "M568 P0 S300",
+      "M568 P0 S200 R290", "M141 S40", "M191 S60", "M141", "M141 S0 R40", "M104 S200 M141 S40", "G28 M303 E0 S300",
+    ]) {
+      expect(() => checkGcodeTemps(g), g).toThrow(/Refused/);
+    }
+    for (const g of [
+      "M303 S250", "M303 E0 S250 C8 U1", "M303 E-1 S90", "G10", "G10 P0 S250 R180", "G10 L2 P1 X0 Y0", "G100 S999",
+      "M568 P0 S250 R150 A2", "M141 S0", "M191 S0", "M5680 S999", "M3030 S999", "M1410 S99", "; M141 S40",
+    ]) {
+      expect(() => checkGcodeTemps(g), g).not.toThrow();
+    }
+  });
+
   it("a cap that is not a number fails closed", () => {
     process.env.BAMBU_MAX_NOZZLE_C = "28O";
     expect(() => checkTemps(100)).toThrow(/not a number/);
