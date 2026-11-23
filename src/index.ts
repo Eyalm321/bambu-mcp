@@ -6,6 +6,7 @@ import { statusTools } from "./tools/status.js";
 import { printTools } from "./tools/print.js";
 import { controlTools } from "./tools/control.js";
 import { fileTools } from "./tools/files.js";
+import { makerworldTools } from "./tools/makerworld.js";
 import { enabledTools } from "./limits.js";
 
 const server = new McpServer({
@@ -19,6 +20,7 @@ const everyTool = [
   ...printTools,
   ...controlTools,
   ...fileTools,
+  ...makerworldTools,
 ];
 
 const allTools = enabledTools(everyTool);
