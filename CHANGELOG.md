@@ -5,6 +5,14 @@
 ### Security
 - While `BAMBU_MAX_NOZZLE_C` / `BAMBU_MAX_BED_C` is set, `bambu_gcode` also caps the heater targets of `M303` (PID autotune; `E-1` is the bed), `G10` and `M568` (`S` / `R` tool temperatures), and refuses `M141` / `M191` (chamber) unless every target is 0. Unset, nothing changes.
 
+## 0.4.1 (2026-11-22)
+
+### Added
+- `BAMBU_DELETE_PREFIX`: when set, `bambu_delete_file` deletes only a top-level file whose name starts with it, so a deployment can allow an agent to remove its own uploads without allowing any delete. Unset, nothing changes.
+- `bambu_upload` and `bambu_print_file` refuse to start while the printer reports HMS 0500-0100-0003-0004 (SD card full), saying how much the top-level files use, instead of sending a job that fails in prep. A failed health read does not block.
+- MakerWorld tools (#24): `makerworld_search` (keyword search, no login), `makerworld_get_design` (a design's print profiles: instanceId, print time, grams, filaments, AMS need; no login) and `makerworld_download` (one profile's 3MF project to a local path; needs a one-time Bambu account login). The download is an unsliced project: slice it with `bambu_slice`, then `bambu_upload` + `bambu_print_file`.
+- `scripts/cloud-login.mjs`: the one-time Bambu account login for `makerworld_download`. It logs in with a code Bambu emails (no password is asked for, plus an authenticator code for 2FA accounts) and writes only the token, mode 600, to `~/.config/bambu-mcp/cloud.env` (or `BAMBU_CLOUD_TOKEN_FILE`). The script ships in the npm package: `node node_modules/bambu-mcp/scripts/cloud-login.mjs`.
+
 ## 0.4.0 (2026-11-22)
 
 ### Added

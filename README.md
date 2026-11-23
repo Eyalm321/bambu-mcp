@@ -37,6 +37,7 @@ Server-side limits that hold whatever the client's own permission rules allow. A
 | `BAMBU_PATH_ROOT` | Local paths for `bambu_upload`, `bambu_download_file`, `bambu_snapshot` and `bambu_slice` (input, output and preset files) must resolve, symlinks followed, inside this directory; others are refused. Snapshots default into it. |
 | `BAMBU_DISABLED_TOOLS` | Comma list of tool names that are not registered at all, e.g. `bambu_gcode,bambu_delete_file`. |
 | `BAMBU_MAX_NOZZLE_C`, `BAMBU_MAX_BED_C` | `bambu_set_temps` refuses targets above the cap. `bambu_gcode` applies the same caps to `M104`/`M109` (nozzle) and `M140`/`M190` (bed), to every `S`, `R` and `B` target, and refuses a preheat preset pick (`I`). It also caps the other commands that heat to a target in the line: `M303` PID autotune (`E0`+ nozzle, `E-1` bed, any other heater refused) and the `G10`/`M568` tool-temperature forms (`S`, `R`); while a cap is set, chamber `M141`/`M191` is refused unless it turns the heater off (`S0`). A cap that is not a number refuses every temperature command; while a cap is set, a temperature command whose value is not a plain number is refused. The caps cover these direct-command tools only, not the G-code inside a print file (`bambu_upload` + `bambu_print_file`). |
+| `BAMBU_DELETE_PREFIX` | `bambu_delete_file` deletes only a top-level file whose name starts with this prefix (no `/`, `\` or `..`), e.g. `prints-` so an agent can clean up its own uploads and nothing else. A prefix that is itself a path refuses every delete. Unset, any file can be deleted. |
 
 ## Register with Claude Code
 
@@ -87,11 +88,30 @@ Or in `~/.claude.json` / Claude Desktop config:
 | `bambu_snapshot` | camera | capture a camera JPEG to disk (see caveat) |
 | `bambu_download_file` | file | download a file from the printer |
 | `bambu_delete_file` | file | delete a file on the printer (permanent) |
+| `makerworld_search` | makerworld | search MakerWorld models by keyword (no login) |
+| `makerworld_get_design` | makerworld | a design's print profiles: instanceId, time, grams, filaments, AMS (no login) |
+| `makerworld_download` | makerworld | download one profile's 3MF project (needs the MakerWorld login below) |
 
 `bambu_print_file` takes an optional `amsMapping` — an array mapping each
 filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
 `[0,3]` maps filament 1→slot 0 and filament 2→slot 3). Read current slots with
 `bambu_ams`.
+
+## MakerWorld (optional)
+
+MakerWorld has no official API; these tools use the endpoints its web app uses. Search and profile
+reads need nothing. A download needs a Bambu account token, made once on this machine's terminal
+(it asks for the email, then the login code Bambu emails, plus an authenticator code if the account
+has 2FA; no password is asked for. It writes only the token, mode 600, to `~/.config/bambu-mcp/cloud.env`, or `BAMBU_CLOUD_TOKEN_FILE`):
+
+```bash
+node scripts/cloud-login.mjs
+```
+
+The token is sent only as request headers to makerworld.com and is never returned or logged; rerun
+the login when a download says the token expired. A downloaded 3MF is a project, not sliced G-code:
+`bambu_slice` it, then `bambu_upload` + `bambu_print_file`. Personal use, one profile per call; each
+model's license applies.
 
 ## Typical AI flow
 

@@ -2,6 +2,7 @@
 //   BAMBU_PATH_ROOT       local paths must resolve (realpath) inside this dir
 //   BAMBU_DISABLED_TOOLS  comma list of tool names that are not registered
 //   BAMBU_MAX_NOZZLE_C / BAMBU_MAX_BED_C  temperature caps for set_temps and gcode
+//   BAMBU_DELETE_PREFIX   delete_file only removes top-level files whose name starts with this
 // A server-side limit holds even when the client's own permission rules are loose.
 import { existsSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -139,4 +140,18 @@ export function checkGcodeTemps(gcode: string): void {
       for (const t of targets("SRB")) nozzle ? checkTemps(t, undefined) : checkTemps(undefined, t);
     });
   }
+}
+
+/**
+ * With BAMBU_DELETE_PREFIX set, bambu_delete_file may remove only a plain top-level file name that
+ * starts with the prefix (what the caller uploaded under it); unset, every name is allowed.
+ * Fails closed: a prefix that is itself a path refuses every delete.
+ */
+export function checkDeleteName(name: string): string {
+  const prefix = process.env.BAMBU_DELETE_PREFIX?.trim();
+  if (!prefix) return name;
+  if (/[\/\\]|\.\./.test(prefix)) throw new Error(`BAMBU_DELETE_PREFIX must be a plain name prefix, not a path: ${prefix}`);
+  if (/[\/\\]|\.\.|[\x00-\x1f]/.test(name) || !name.startsWith(prefix) || name.length === prefix.length)
+    throw new Error(`Refused: with BAMBU_DELETE_PREFIX set, only a top-level file named ${prefix}* can be deleted (got ${JSON.stringify(name)})`);
+  return name;
 }
