@@ -11,7 +11,7 @@ import { enabledTools } from "./limits.js";
 
 const server = new McpServer({
   name: "bambu-mcp",
-  version: "0.3.1",
+  version: "0.4.0",
 });
 
 const everyTool = [
