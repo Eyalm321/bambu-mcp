@@ -87,11 +87,30 @@ Or in `~/.claude.json` / Claude Desktop config:
 | `bambu_snapshot` | camera | capture a camera JPEG to disk (see caveat) |
 | `bambu_download_file` | file | download a file from the printer |
 | `bambu_delete_file` | file | delete a file on the printer (permanent) |
+| `makerworld_search` | makerworld | search MakerWorld models by keyword (no login) |
+| `makerworld_get_design` | makerworld | a design's print profiles: instanceId, time, grams, filaments, AMS (no login) |
+| `makerworld_download` | makerworld | download one profile's 3MF project (needs the MakerWorld login below) |
 
 `bambu_print_file` takes an optional `amsMapping` — an array mapping each
 filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
 `[0,3]` maps filament 1→slot 0 and filament 2→slot 3). Read current slots with
 `bambu_ams`.
+
+## MakerWorld (optional)
+
+MakerWorld has no official API; these tools use the endpoints its web app uses. Search and profile
+reads need nothing. A download needs a Bambu account token, made once on this machine's terminal
+(it asks for email, password with echo off, and the emailed or authenticator code, and writes only
+the token, mode 600, to `~/.config/bambu-mcp/cloud.env`, or `BAMBU_CLOUD_TOKEN_FILE`):
+
+```bash
+node scripts/cloud-login.mjs
+```
+
+The token is sent only as request headers to makerworld.com and is never returned or logged; rerun
+the login when a download says the token expired. A downloaded 3MF is a project, not sliced G-code:
+`bambu_slice` it, then `bambu_upload` + `bambu_print_file`. Personal use, one profile per call; each
+model's license applies.
 
 ## Typical AI flow
 
