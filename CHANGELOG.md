@@ -4,6 +4,7 @@
 
 ### Security
 - While `BAMBU_MAX_NOZZLE_C` / `BAMBU_MAX_BED_C` is set, `bambu_gcode` also caps the heater targets of `M303` (PID autotune; `E-1` is the bed), `G10` and `M568` (`S` / `R` tool temperatures), and refuses `M141` / `M191` (chamber) unless every target is 0. Unset, nothing changes.
+- While a cap is set, `bambu_gcode` also refuses `M303` that picks its heater with `H`, and `M143` (a heater's maximum temperature).
 
 ## 0.4.1 (2026-11-22)
 
