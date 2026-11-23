@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- `bambu_print_file` sends Bambu Studio's LAN print prep instead of forcing calibrations: bed leveling, flow and nozzle offset calibration on auto (the integer fields newer firmware such as the P2S reads, which it treated as missing and so calibrated every print), no vibration test, first-layer inspection on, `md5` and `url` as Studio sends them, plus `ams_mapping2`. New optional overrides: `bedLeveling`, `flowCali`, `nozzleOffsetCali` (`auto`/`on`/`off`), `vibrationCali`, `layerInspect`, `timelapse`, `bedType`. Firmware that reads only the old booleans keeps bed leveling and flow calibration on, as before.
+
 ## 0.4.1 (2026-11-22)
 
 ### Added

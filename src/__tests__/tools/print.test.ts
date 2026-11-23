@@ -48,7 +48,7 @@ describe("printTools", () => {
 
   it("bambu_print_file defaults plate=1, useAms=true, no mapping", async () => {
     await find("bambu_print_file").handler({ remoteName: "job1.3mf" });
-    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 1, true, undefined);
+    expect(startPrint).toHaveBeenCalledWith("job1.3mf", {});
   });
 
   it("bambu_print_file passes explicit plate, useAms + amsMapping", async () => {
@@ -58,7 +58,19 @@ describe("printTools", () => {
       useAms: true,
       amsMapping: [2],
     });
-    expect(startPrint).toHaveBeenCalledWith("job1.3mf", 3, true, [2]);
+    expect(startPrint).toHaveBeenCalledWith("job1.3mf", { plate: 3, useAms: true, amsMapping: [2] });
+  });
+
+  it("bambu_print_file passes calibration overrides and reports them", async () => {
+    const r = await find("bambu_print_file").handler({ remoteName: "job1.3mf", bedLeveling: "off", flowCali: "on" });
+    expect(startPrint).toHaveBeenCalledWith("job1.3mf", { bedLeveling: "off", flowCali: "on" });
+    expect(r).toMatchObject({ bedLeveling: "off", flowCali: "on" });
+  });
+
+  it("bambu_print_file refuses an unknown calibration mode", () => {
+    const schema = find("bambu_print_file").inputSchema;
+    expect(schema.safeParse({ remoteName: "a.3mf", bedLeveling: "maybe" }).success).toBe(false);
+    expect(schema.safeParse({ remoteName: "a.3mf", bedType: "x; rm" }).success).toBe(false);
   });
 
   it("pause/resume/stop call the matching client fn", async () => {
