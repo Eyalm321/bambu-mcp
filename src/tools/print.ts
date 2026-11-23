@@ -8,7 +8,7 @@ import {
   resumePrint,
   stopPrint,
 } from "../client.js";
-import { checkPath } from "../limits.js";
+import { checkPath, checkUploadName } from "../limits.js";
 import { checkSdSpace } from "../sdguard.js";
 
 export const printTools = [
@@ -30,7 +30,7 @@ export const printTools = [
       if (!existsSync(local)) {
         throw new Error(`No such file: ${args.localPath}`);
       }
-      const remote = args.remoteName ?? basename(args.localPath);
+      const remote = checkUploadName(args.remoteName ?? basename(args.localPath));
       await checkSdSpace("the upload");
       await uploadFile(local, remote);
       return { uploaded: remote };

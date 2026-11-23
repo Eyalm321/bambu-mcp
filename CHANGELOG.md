@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Security
+- `BAMBU_DELETE_PREFIX` now scopes `bambu_upload` too: with it set, an upload may write only a top-level name with the prefix, since an upload over another file destroys it just as a delete would. Unset, nothing changes.
+
+## Unreleased
+
 ### Added
 - `BAMBU_DELETE_PREFIX`: when set, `bambu_delete_file` deletes only a top-level file whose name starts with it, so a deployment can allow an agent to remove its own uploads without allowing any delete. Unset, nothing changes.
 - `bambu_upload` and `bambu_print_file` refuse to start while the printer reports HMS 0500-0100-0003-0004 (SD card full), saying how much the top-level files use, instead of sending a job that fails in prep. A failed health read does not block.
