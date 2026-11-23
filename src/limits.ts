@@ -90,10 +90,11 @@ export function checkTemps(nozzleC?: number, bedC?: number): void {
  * I picks a stored preheat preset whose temperature is not in the line, so it
  * is refused while a cap is set.
  * Other commands that heat to a target in the line are capped too: M303 (PID
- * autotune heats E<n> or the bed, E-1, to S; any other heater is refused) and
+ * autotune heats E<n> or the bed, E-1, to S; any other heater, or one picked by H, is refused) and
  * the RepRap tool-temperature forms G10/M568 (S and R are nozzle targets).
  * Chamber commands (M141/M191) set a heater no cap covers, so while a cap is
- * set they are refused unless they turn it off (every target 0).
+ * set they are refused unless they turn it off (every target 0). M143 (a heater's maximum
+ * temperature) is refused outright while a cap is set.
  * Fails closed while a cap is set: any CR or LF ends a line, the command is
  * found anywhere in the line, with spaces after the letter or leading zeros, every
  * target after it (up to the next temperature command) is checked, and a value that is not a
@@ -110,7 +111,7 @@ export function checkGcodeTemps(gcode: string): void {
   };
   for (const raw of gcode.split(/[\r\n]/)) {
     const line = raw.replace(/;.*$/, "").toUpperCase();
-    const cmds = [...line.matchAll(/(?:M\s*0*(104|109|140|190|141|191|303|568)|G\s*0*(10))(?!\d)/g)];
+    const cmds = [...line.matchAll(/(?:M\s*0*(104|109|140|190|141|191|143|303|568)|G\s*0*(10))(?!\d)/g)];
     cmds.forEach((m, k) => {
       const code = m[1] ?? "G10";
       const end = k + 1 < cmds.length ? cmds[k + 1].index : line.length;
@@ -123,7 +124,13 @@ export function checkGcodeTemps(gcode: string): void {
           throw new Error(`Refused: "${raw.trim()}" sets the chamber heater, which no cap covers, while a cap is set`);
         return;
       }
+      if (code === "143") {
+        throw new Error(`Refused: "${raw.trim()}" changes a heater's maximum temperature while a cap is set`);
+      }
       if (code === "303") {
+        // RepRap picks the heater with H (H0 is often the bed), which E-based checking cannot place.
+        if (/H/.test(params))
+          throw new Error(`Refused: "${raw.trim()}" autotunes a heater chosen by H, which cannot be checked against the cap`);
         const e = [...params.matchAll(/E\s*([0-9A-Z+\-.]*)/g)].map((p) => p[1]);
         if (e.length > 1 || (e.length === 1 && !/^(-1|\d+)$/.test(e[0])))
           throw new Error(`Refused: "${raw.trim()}" autotunes a heater that cannot be checked against the cap`);
