@@ -1,11 +1,11 @@
 # Changelog
 
-## 0.4.1 (2026-11-22)
+## Unreleased
 
 ### Security
 - `BAMBU_DELETE_PREFIX` now scopes `bambu_upload` too: with it set, an upload may write only a top-level name with the prefix, since an upload over another file destroys it just as a delete would. Unset, nothing changes.
 
-## Unreleased
+## 0.4.1 (2026-11-22)
 
 ### Added
 - `BAMBU_DELETE_PREFIX`: when set, `bambu_delete_file` deletes only a top-level file whose name starts with it, so a deployment can allow an agent to remove its own uploads without allowing any delete. Unset, nothing changes.
