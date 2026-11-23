@@ -9,6 +9,7 @@ import {
   stopPrint,
 } from "../client.js";
 import { checkPath } from "../limits.js";
+import { checkSdSpace } from "../sdguard.js";
 
 export const printTools = [
   {
@@ -30,6 +31,7 @@ export const printTools = [
         throw new Error(`No such file: ${args.localPath}`);
       }
       const remote = args.remoteName ?? basename(args.localPath);
+      await checkSdSpace("the upload");
       await uploadFile(local, remote);
       return { uploaded: remote };
     },
@@ -62,6 +64,7 @@ export const printTools = [
       useAms?: boolean;
       amsMapping?: number[];
     }) => {
+      await checkSdSpace("the print");
       await startPrint(
         args.remoteName,
         args.plate ?? 1,
