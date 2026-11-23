@@ -361,37 +361,83 @@ export async function stopPrint(): Promise<void> {
  * Start printing a .3mf already uploaded to the printer's FTP cache.
  * `remoteName` is the filename in the cache (see uploadFile / listFiles).
  */
-export async function startPrint(
-  remoteName: string,
-  plate = 1,
-  useAms = true,
-  amsMapping?: number[]
-): Promise<void> {
-  const base = remoteName.replace(/\.[^.]+$/, "");
-  // ams_mapping maps each filament in the plate to an AMS slot (0-based).
-  // Default [0] = everything from slot 0. Ignored when use_ams is false.
-  const mapping = useAms ? amsMapping ?? [0] : [255];
-  await sendCommand({
+/** A calibration step: "auto" lets the printer decide (Bambu Studio's default on the P2S), "on" forces it, "off" skips it. */
+export type CaliMode = "auto" | "on" | "off";
+
+export interface PrintOptions {
+  plate?: number;
+  useAms?: boolean;
+  amsMapping?: number[];
+  bedLeveling?: CaliMode;
+  flowCali?: CaliMode;
+  nozzleOffsetCali?: CaliMode;
+  vibrationCali?: boolean;
+  layerInspect?: boolean;
+  timelapse?: boolean;
+  bedType?: string;
+}
+
+const CALI_INT: Record<CaliMode, number> = { off: 0, on: 1, auto: 2 };
+
+/**
+ * The project_file command Bambu Studio sends for a LAN print of a file already on the printer's storage.
+ * Newer firmware (P2S) decides from the integer fields (auto_bed_leveling, extrude_cali_flag,
+ * nozzle_offset_cali: 0 off, 1 on, 2 auto) and calibrates anyway when they are missing. Older firmware reads
+ * only the booleans, so "auto" keeps those true there, as this server always sent.
+ */
+export function printCommand(remoteName: string, o: PrintOptions = {}): Record<string, unknown> {
+  const useAms = o.useAms ?? true;
+  const bed = o.bedLeveling ?? "auto";
+  const flow = o.flowCali ?? "auto";
+  // ams_mapping maps each filament in the plate to an AMS tray (0-based, ams_id*4 + slot).
+  // Default [0] = everything from tray 0. [255] when use_ams is false.
+  const mapping = useAms ? o.amsMapping ?? [0] : [255];
+  return {
     print: {
       command: "project_file",
-      param: `Metadata/plate_${plate}.gcode`,
-      url: `ftp:///${remoteName}`,
-      subtask_name: base,
+      param: `Metadata/plate_${o.plate ?? 1}.gcode`,
+      // Studio's form after an FTPS upload to the storage root.
+      url: `ftp://${remoteName}`,
+      file: remoteName,
+      // Studio sends this literal on LAN prints; a wrong hex md5 aborts the print.
+      md5: "from_sd_card",
+      subtask_name: remoteName.replace(/\.gcode\.3mf$|\.[^.]+$/, ""),
       use_ams: useAms,
       ams_mapping: mapping,
-      timelapse: false,
-      flow_cali: true,
-      bed_leveling: true,
-      layer_inspect: false,
-      vibration_cali: true,
-      bed_type: "auto",
+      // Firmware that knows ams_mapping2 prefers it: {ams_id, slot_id} per filament (trays 0-15 = AMS 0-3),
+      // 254 = the external spool (255/0, as Studio), anything else = unmapped (255/255).
+      ams_mapping2: useAms
+        ? mapping.map((t) =>
+            t >= 0 && t <= 15
+              ? { ams_id: Math.floor(t / 4), slot_id: t % 4 }
+              : t === 254
+                ? { ams_id: 255, slot_id: 0 }
+                : { ams_id: 255, slot_id: 255 }
+          )
+        : [],
+      timelapse: o.timelapse ?? false,
+      bed_leveling: bed !== "off",
+      auto_bed_leveling: CALI_INT[bed],
+      flow_cali: flow !== "off",
+      extrude_cali_flag: CALI_INT[flow],
+      nozzle_offset_cali: CALI_INT[o.nozzleOffsetCali ?? "auto"],
+      extrude_cali_manual_mode: 0,
+      // Studio never runs the vibration test from the send dialog and always asks for first-layer inspection.
+      vibration_cali: o.vibrationCali ?? false,
+      layer_inspect: o.layerInspect ?? true,
+      bed_type: o.bedType ?? "auto",
+      cfg: "0",
       sequence_id: nextSeq(),
       project_id: "0",
       profile_id: "0",
       task_id: "0",
       subtask_id: "0",
     },
-  });
+  };
+}
+
+export async function startPrint(remoteName: string, options: PrintOptions = {}): Promise<void> {
+  await sendCommand(printCommand(remoteName, options));
 }
 
 // --------------------------------------------------------------------------- //

@@ -4,12 +4,15 @@ import { basename } from "node:path";
 import {
   uploadFile,
   startPrint,
+  type PrintOptions,
   pausePrint,
   resumePrint,
   stopPrint,
 } from "../client.js";
-import { checkPath } from "../limits.js";
+import { checkPath, checkUploadName } from "../limits.js";
 import { checkSdSpace } from "../sdguard.js";
+
+const cali = z.enum(["auto", "on", "off"]).optional();
 
 export const printTools = [
   {
@@ -30,7 +33,7 @@ export const printTools = [
       if (!existsSync(local)) {
         throw new Error(`No such file: ${args.localPath}`);
       }
-      const remote = args.remoteName ?? basename(args.localPath);
+      const remote = checkUploadName(args.remoteName ?? basename(args.localPath));
       await checkSdSpace("the upload");
       await uploadFile(local, remote);
       return { uploaded: remote };
@@ -52,29 +55,33 @@ export const printTools = [
         .optional()
         .describe("Pull filament from the AMS if present (default true)"),
       amsMapping: z
-        .array(z.number().int())
+        .array(z.number().int().refine((t) => (t >= 0 && t <= 15) || t === 254 || t === 255, "an AMS tray 0-15, 254 (external spool) or 255 (unmapped)"))
         .optional()
         .describe(
-          "Map each filament in the plate to an AMS slot (0-based), e.g. [2] prints from slot 2, [0,3] maps filament 1→slot 0, filament 2→slot 3. See bambu_ams. Default [0]."
+          "Map each filament in the plate to an AMS slot (0-based), e.g. [2] prints from slot 2, [0,3] maps filament 1→slot 0, filament 2→slot 3. Trays 0-15 (AMS 0-3), 254 = external spool, 255 = unmapped. See bambu_ams. Default [0]."
         ),
+      bedLeveling: cali.describe('Bed leveling before the print: "auto" (default, the printer decides, as Bambu Studio sends), "on" or "off"'),
+      flowCali: cali.describe('Flow dynamics (extrusion) calibration: "auto" (default), "on" or "off"'),
+      nozzleOffsetCali: cali.describe('Nozzle offset calibration on printers that have it: "auto" (default), "on" or "off"'),
+      vibrationCali: z.boolean().optional().describe("Run the vibration (resonance) test first (default false, as Bambu Studio)"),
+      layerInspect: z.boolean().optional().describe("First-layer inspection where supported (default true, as Bambu Studio)"),
+      timelapse: z.boolean().optional().describe("Record a timelapse to the printer's storage (default false)"),
+      bedType: z
+        .string()
+        .regex(/^[a-z_]{1,40}$/)
+        .optional()
+        .describe('Plate type, e.g. "textured_plate", "cool_plate", "hot_plate" (default "auto")'),
     }),
-    handler: async (args: {
-      remoteName: string;
-      plate?: number;
-      useAms?: boolean;
-      amsMapping?: number[];
-    }) => {
+    handler: async (args: { remoteName: string } & PrintOptions) => {
       await checkSdSpace("the print");
-      await startPrint(
-        args.remoteName,
-        args.plate ?? 1,
-        args.useAms ?? true,
-        args.amsMapping
-      );
+      const { remoteName, ...options } = args;
+      await startPrint(remoteName, options);
       return {
-        printing: args.remoteName,
+        printing: remoteName,
         plate: args.plate ?? 1,
         amsMapping: args.amsMapping ?? [0],
+        bedLeveling: args.bedLeveling ?? "auto",
+        flowCali: args.flowCali ?? "auto",
       };
     },
   },

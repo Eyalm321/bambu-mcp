@@ -37,7 +37,7 @@ Server-side limits that hold whatever the client's own permission rules allow. A
 | `BAMBU_PATH_ROOT` | Local paths for `bambu_upload`, `bambu_download_file`, `bambu_snapshot` and `bambu_slice` (input, output and preset files) must resolve, symlinks followed, inside this directory; others are refused. Snapshots default into it. |
 | `BAMBU_DISABLED_TOOLS` | Comma list of tool names that are not registered at all, e.g. `bambu_gcode,bambu_delete_file`. |
 | `BAMBU_MAX_NOZZLE_C`, `BAMBU_MAX_BED_C` | `bambu_set_temps` refuses targets above the cap. `bambu_gcode` applies the same caps to `M104`/`M109` (nozzle) and `M140`/`M190` (bed), to every `S`, `R` and `B` target, and refuses a preheat preset pick (`I`). It also caps the other commands that heat to a target in the line: `M303` PID autotune (`E0`+ nozzle, `E-1` bed, any other heater, or one picked by `H`, refused; `M143` heater maximum refused) and the `G10`/`M568` tool-temperature forms (`S`, `R`); while a cap is set, chamber `M141`/`M191` is refused unless it turns the heater off (`S0`). A cap that is not a number refuses every temperature command; while a cap is set, a temperature command whose value is not a plain number is refused. The caps cover these direct-command tools only, not the G-code inside a print file (`bambu_upload` + `bambu_print_file`). |
-| `BAMBU_DELETE_PREFIX` | `bambu_delete_file` deletes only a top-level file whose name starts with this prefix (no `/`, `\` or `..`), e.g. `prints-` so an agent can clean up its own uploads and nothing else. A prefix that is itself a path refuses every delete. Unset, any file can be deleted. |
+| `BAMBU_DELETE_PREFIX` | `bambu_delete_file` deletes, and `bambu_upload` writes, only a top-level file whose name starts with this prefix (no `/`, `\` or `..`), e.g. `prints-` so an agent can manage its own uploads and nothing else (an upload over another name would destroy that file just as a delete would; an upload's default name, the local basename, must carry the prefix too). A prefix that is itself a path refuses every delete and upload. Unset, any name is allowed. |
 
 ## Register with Claude Code
 
@@ -96,6 +96,12 @@ Or in `~/.claude.json` / Claude Desktop config:
 filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
 `[0,3]` maps filament 1→slot 0 and filament 2→slot 3). Read current slots with
 `bambu_ams`.
+
+`bambu_print_file` sends the print prep Bambu Studio sends for a LAN print: bed leveling, flow
+calibration and nozzle offset calibration on `"auto"` (the printer decides whether it needs them), no
+vibration test, first-layer inspection on, no timelapse. Override each with `bedLeveling`, `flowCali`,
+`nozzleOffsetCali` (`"auto"`, `"on"` or `"off"`), `vibrationCali`, `layerInspect`, `timelapse` and
+`bedType`.
 
 ## MakerWorld (optional)
 
