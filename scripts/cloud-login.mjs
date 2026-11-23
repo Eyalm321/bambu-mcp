@@ -6,7 +6,7 @@
 // File: $BAMBU_CLOUD_TOKEN_FILE, default ~/.config/bambu-mcp/cloud.env.
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
-import { mkdirSync, openSync, writeSync, closeSync, renameSync } from "node:fs";
+import { mkdirSync, openSync, writeSync, closeSync, renameSync, unlinkSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -19,14 +19,23 @@ const waiting = [];
 lines.on("line", (l) => (waiting.length ? waiting.shift()(l) : queue.push(l)));
 lines.on("close", () => waiting.splice(0).forEach((w) => w(null)));
 
+// stty on the controlling terminal stops echo without a dependency. Echo is restored on every exit
+// path, Ctrl-C included, so an aborted login never leaves the terminal silent.
+let echoOff = false;
+function echo(on) {
+  spawnSync("stty", [on ? "echo" : "-echo"], { stdio: ["inherit", "ignore", "ignore"] });
+  echoOff = !on;
+}
+process.on("exit", () => { if (echoOff) echo(true); });
+process.on("SIGINT", () => { if (echoOff) { echo(true); process.stderr.write("\n"); } process.exit(130); });
+
 /** Read one line; with hidden set, terminal echo is off while it is typed. */
 async function ask(prompt, hidden = false) {
   process.stderr.write(prompt);
-  // stty on the controlling terminal stops echo without a dependency.
   const tty = hidden && process.stdin.isTTY;
-  if (tty) spawnSync("stty", ["-echo"], { stdio: ["inherit", "ignore", "ignore"] });
+  if (tty) echo(false);
   const line = queue.length ? queue.shift() : await new Promise((r) => waiting.push(r));
-  if (tty) { spawnSync("stty", ["echo"], { stdio: ["inherit", "ignore", "ignore"] }); process.stderr.write("\n"); }
+  if (tty) { echo(true); process.stderr.write("\n"); }
   if (line === null) fail("input ended");
   return line.trim();
 }
@@ -44,6 +53,8 @@ async function post(url, payload) {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify(payload),
+      // A 307/308 would resend the password to wherever it points; refuse redirects instead.
+      redirect: "error",
     });
   } catch (e) {
     fail(`cannot reach ${new URL(url).host} (${e.cause?.code ?? e.message})`);
@@ -71,7 +82,10 @@ function save(token, expiresIn) {
   const until = Number.isFinite(expiresIn) && expiresIn > 0 ? new Date(Date.now() + expiresIn * 1000) : undefined;
   writeSync(fd, `# Bambu account token for bambu-mcp MakerWorld tools${until ? `, expires about ${until.toISOString().slice(0, 10)}` : ""}\nBAMBU_CLOUD_TOKEN=${token}\n`);
   closeSync(fd);
-  renameSync(tmp, file);
+  try { renameSync(tmp, file); } catch (e) {
+    try { unlinkSync(tmp); } catch {}
+    fail(`could not write ${file} (${e.code ?? e.message})`);
+  }
   process.stderr.write(`saved: ${file} (mode 600)${until ? `, expires about ${until.toISOString().slice(0, 10)}` : ""}\n`);
   process.exit(0);
 }
