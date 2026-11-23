@@ -112,22 +112,48 @@ export async function downloadTo(fileUrl: string, to: string, redirects = 3): Pr
   if (code >= 400) { res.resume(); throw new Error(`file download answered ${code}`); }
   const declared = Number(res.headers["content-length"]);
   if (declared > MAX_DOWNLOAD_BYTES) { res.destroy(); throw new Error(`file is ${declared} bytes, above the ${MAX_DOWNLOAD_BYTES} limit`); }
-  const tmp = `${to}.part`;
+  return saveStream(res, to);
+}
+
+/**
+ * Write a byte stream to `to` via a temp file renamed when complete. Every write-side error
+ * (unwritable dir, full disk) rejects here: an 'error' event with no listener would exit the server.
+ */
+export async function saveStream(src: AsyncIterable<Buffer> & { destroy?: (e?: Error) => void }, to: string): Promise<number> {
+  // A unique temp name, so a .part left by a killed run never blocks the next download.
+  const tmp = `${to}.${process.pid}-${Date.now()}.part`;
   const out = createWriteStream(tmp, { flags: "wx", mode: 0o644 });
+  let failed: Error | undefined;
+  // Destroy the source without an error: an error passed on would be emitted on it unheard.
+  out.on("error", (e) => { failed ??= e; src.destroy?.(); });
+  const wait = (ev: "open" | "drain") =>
+    new Promise<void>((r, j) => {
+      if (failed) return j(failed);
+      const onErr = (e: Error) => { out.off(ev, onOk); j(e); };
+      const onOk = () => { out.off("error", onErr); r(); };
+      out.once(ev, onOk);
+      out.once("error", onErr);
+    });
+  let opened = false;
   let n = 0;
   try {
-    for await (const c of res) {
+    await wait("open");
+    opened = true;
+    for await (const c of src) {
+      if (failed) throw failed;
       n += c.length;
       if (n > MAX_DOWNLOAD_BYTES) throw new Error(`file is above the ${MAX_DOWNLOAD_BYTES} byte limit`);
-      if (!out.write(c)) await new Promise<void>((r) => out.once("drain", () => r()));
+      if (!out.write(c)) await wait("drain");
     }
-    await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r())));
+    if (failed) throw failed;
+    await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : failed ? j(failed) : r())));
     renameSync(tmp, to);
   } catch (e) {
-    res.destroy();
+    src.destroy?.();
     out.destroy();
-    rmSync(tmp, { force: true });
-    throw e;
+    // Only remove a temp file this call created.
+    if (opened) rmSync(tmp, { force: true });
+    throw failed ?? e;
   }
   return n;
 }
