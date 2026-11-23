@@ -97,6 +97,12 @@ filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
 `[0,3]` maps filament 1→slot 0 and filament 2→slot 3). Read current slots with
 `bambu_ams`.
 
+`bambu_print_file` sends the print prep Bambu Studio sends for a LAN print: bed leveling, flow
+calibration and nozzle offset calibration on `"auto"` (the printer decides whether it needs them), no
+vibration test, first-layer inspection on, no timelapse. Override each with `bedLeveling`, `flowCali`,
+`nozzleOffsetCali` (`"auto"`, `"on"` or `"off"`), `vibrationCali`, `layerInspect`, `timelapse` and
+`bedType`.
+
 ## MakerWorld (optional)
 
 MakerWorld has no official API; these tools use the endpoints its web app uses. Search and profile
