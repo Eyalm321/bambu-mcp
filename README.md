@@ -100,8 +100,8 @@ filament in the plate to a 0-based AMS slot (e.g. `[2]` prints from slot 2,
 
 MakerWorld has no official API; these tools use the endpoints its web app uses. Search and profile
 reads need nothing. A download needs a Bambu account token, made once on this machine's terminal
-(it asks for email, password with echo off, and the emailed or authenticator code, and writes only
-the token, mode 600, to `~/.config/bambu-mcp/cloud.env`, or `BAMBU_CLOUD_TOKEN_FILE`):
+(it asks for the email, then the login code Bambu emails, plus an authenticator code if the account
+has 2FA; no password is asked for. It writes only the token, mode 600, to `~/.config/bambu-mcp/cloud.env`, or `BAMBU_CLOUD_TOKEN_FILE`):
 
 ```bash
 node scripts/cloud-login.mjs
