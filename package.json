@@ -9,6 +9,7 @@
   },
   "files": [
     "dist/**/*",
+    "scripts/cloud-login.mjs",
     "README.md"
   ],
   "engines": {
