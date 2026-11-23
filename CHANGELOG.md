@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `BAMBU_DELETE_PREFIX`: when set, `bambu_delete_file` deletes only a top-level file whose name starts with it, so a deployment can allow an agent to remove its own uploads without allowing any delete. Unset, nothing changes.
+
 ## 0.4.0 (2026-11-22)
 
 ### Added
