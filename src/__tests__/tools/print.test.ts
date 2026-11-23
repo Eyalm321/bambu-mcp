@@ -71,6 +71,8 @@ describe("printTools", () => {
     const schema = find("bambu_print_file").inputSchema;
     expect(schema.safeParse({ remoteName: "a.3mf", bedLeveling: "maybe" }).success).toBe(false);
     expect(schema.safeParse({ remoteName: "a.3mf", bedType: "x; rm" }).success).toBe(false);
+    expect(schema.safeParse({ remoteName: "a.3mf", amsMapping: [16] }).success).toBe(false);
+    expect(schema.safeParse({ remoteName: "a.3mf", amsMapping: [0, 254, 255] }).success).toBe(true);
   });
 
   it("pause/resume/stop call the matching client fn", async () => {

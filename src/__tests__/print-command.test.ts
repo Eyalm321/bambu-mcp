@@ -50,6 +50,11 @@ describe("printCommand (Bambu Studio's LAN project_file)", () => {
     expect(c.ams_mapping2).toEqual([{ ams_id: 0, slot_id: 0 }, { ams_id: 1, slot_id: 1 }, { ams_id: 255, slot_id: 255 }]);
   });
 
+  it("maps 254 to the external spool and anything past tray 15 to unmapped", () => {
+    const c = p("a.3mf", { amsMapping: [15, 254, 16] });
+    expect(c.ams_mapping2).toEqual([{ ams_id: 3, slot_id: 3 }, { ams_id: 255, slot_id: 0 }, { ams_id: 255, slot_id: 255 }]);
+  });
+
   it("sends no AMS mapping without the AMS", () => {
     const c = p("a.3mf", { useAms: false, amsMapping: [2] });
     expect(c).toMatchObject({ use_ams: false, ams_mapping: [255], ams_mapping2: [] });

@@ -55,10 +55,10 @@ export const printTools = [
         .optional()
         .describe("Pull filament from the AMS if present (default true)"),
       amsMapping: z
-        .array(z.number().int())
+        .array(z.number().int().refine((t) => (t >= 0 && t <= 15) || t === 254 || t === 255, "an AMS tray 0-15, 254 (external spool) or 255 (unmapped)"))
         .optional()
         .describe(
-          "Map each filament in the plate to an AMS slot (0-based), e.g. [2] prints from slot 2, [0,3] maps filament 1→slot 0, filament 2→slot 3. See bambu_ams. Default [0]."
+          "Map each filament in the plate to an AMS slot (0-based), e.g. [2] prints from slot 2, [0,3] maps filament 1→slot 0, filament 2→slot 3. Trays 0-15 (AMS 0-3), 254 = external spool, 255 = unmapped. See bambu_ams. Default [0]."
         ),
       bedLeveling: cali.describe('Bed leveling before the print: "auto" (default, the printer decides, as Bambu Studio sends), "on" or "off"'),
       flowCali: cali.describe('Flow dynamics (extrusion) calibration: "auto" (default), "on" or "off"'),

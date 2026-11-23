@@ -404,9 +404,16 @@ export function printCommand(remoteName: string, o: PrintOptions = {}): Record<s
       subtask_name: remoteName.replace(/\.gcode\.3mf$|\.[^.]+$/, ""),
       use_ams: useAms,
       ams_mapping: mapping,
-      // Firmware that knows ams_mapping2 prefers it: {ams_id, slot_id} per filament, 255/255 = unmapped.
+      // Firmware that knows ams_mapping2 prefers it: {ams_id, slot_id} per filament (trays 0-15 = AMS 0-3),
+      // 254 = the external spool (255/0, as Studio), anything else = unmapped (255/255).
       ams_mapping2: useAms
-        ? mapping.map((t) => (t >= 0 && t < 255 ? { ams_id: Math.floor(t / 4), slot_id: t % 4 } : { ams_id: 255, slot_id: 255 }))
+        ? mapping.map((t) =>
+            t >= 0 && t <= 15
+              ? { ams_id: Math.floor(t / 4), slot_id: t % 4 }
+              : t === 254
+                ? { ams_id: 255, slot_id: 0 }
+                : { ams_id: 255, slot_id: 255 }
+          )
         : [],
       timelapse: o.timelapse ?? false,
       bed_leveling: bed !== "off",
