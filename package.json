@@ -18,7 +18,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "node --import ts-node/esm src/index.ts",
+    "dev": "tsc && node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
@@ -51,7 +51,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
-    "ts-node": "^10.9.2",
     "typescript": "^6.0.2",
     "vitest": "^5.1.0"
   },

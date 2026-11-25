@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Development: `npm run dev` builds with `tsc` and then starts `dist`; `ts-node` is no longer a dev dependency (it needs the TypeScript JS API, which TypeScript 7 does not ship). The published package is unchanged.
+
 ## 0.4.2 (2026-11-23)
 
 ### Security
